@@ -1,6 +1,8 @@
 package ro.utcluj.lic.service;
 
 import javafx.util.converter.BigDecimalStringConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -16,8 +18,15 @@ import java.util.List;
 @Service
 public class ConsumerService {
 
-    public List<BigDecimal> loadConsumersFromFile() throws IOException {
-        return readFileAndExtractConsumers();
+    private Logger LOG = LoggerFactory.getLogger(this.getClass());
+
+    public List<BigDecimal> loadConsumersFromFile() {
+        try {
+            return readFileAndExtractConsumers();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private List<BigDecimal> readFileAndExtractConsumers() throws IOException {
