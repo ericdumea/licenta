@@ -1,29 +1,31 @@
 package ro.utcluj.lic.domain;
 
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Document(collection = "producer")
-public class Producer {
+public class Provider {
 
-    private Integer id;
+    private ObjectId id;
 
     private String producerType;
 
     private Boolean flag;
 
     //FIXME to be converted to a list of 24, represinting the hours
-    private BigDecimal energy;
+    private List<BigDecimal> energy;
 
-    public Producer() {
+    public Provider() {
     }
 
-    public Integer getId() {
+    public ObjectId getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(ObjectId id) {
         this.id = id;
     }
 
@@ -43,11 +45,11 @@ public class Producer {
         this.flag = flag;
     }
 
-    public BigDecimal getEnergy() {
+    public List<BigDecimal> getEnergy() {
         return energy;
     }
 
-    public void setEnergy(BigDecimal energy) {
+    public void setEnergy(List<BigDecimal> energy) {
         this.energy = energy;
     }
 }

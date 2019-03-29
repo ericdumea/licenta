@@ -1,8 +1,6 @@
 package ro.utcluj.lic.service;
 
 import javafx.util.converter.BigDecimalStringConverter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -16,36 +14,30 @@ import java.util.Arrays;
 import java.util.List;
 
 @Service
-public class LoadService {
+public class ConsumerService {
 
-    Logger LOG = LoggerFactory.getLogger(this.getClass());
+    public List<BigDecimal> loadConsumersFromFile() throws IOException {
+        return readFileAndExtractConsumers();
+    }
 
-    public void loadConsumersFromFile() throws IOException {
+    private List<BigDecimal> readFileAndExtractConsumers() throws IOException {
         BufferedReader reader = null;
         BigDecimalStringConverter bigDecimalStringConverter = new BigDecimalStringConverter();
 
+        List<BigDecimal> numbersRead = new ArrayList<>();
+
         try {
-            // use buffered reader to read line by line
             reader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(
                     "C:\\school\\Likenta\\licenta\\consumer.txt"))));
+            String line;
+            String[] numbers;
 
-            List<BigDecimal> numbersRead = new ArrayList<>();
-            String line = null;
-            String[] numbers = null;
-            // read line by line till end of file
             while ((line = reader.readLine()) != null) {
-                int i = 0;
-                numbers = line.split("\\d\\s+");
+                numbers = line.split("\\s+");
                 Arrays.stream(numbers).forEach(s ->
-                        numbersRead.add(bigDecimalStringConverter.fromString(s)));
-
-                numbersRead.forEach(bigDecimal -> LOG.info(bigDecimal + " "));
-                LOG.info(numbersRead.size() + " ");
-
+                        numbersRead.add(new BigDecimal(s)));
             }
-        } catch (Exception ignored) {
-
-        } finally {
+        }finally {
             if (reader != null) {
                 try {
                     reader.close();
@@ -54,6 +46,7 @@ public class LoadService {
                 }
             }
         }
+        return numbersRead;
     }
 
 }
