@@ -26,11 +26,11 @@ public class ConsumerResource {
 
     @GetMapping("/load-consumer-data")
     public ResponseEntity<List<BigDecimal>> loadConsumerDataInDB(){
-        try {
+//        try {
             return ok().body(consumerService.loadConsumersFromFile());
-        } catch (IOException e) {
-            return badRequest().build();
-        }
+//        } catch (IOException e) {
+//            return badRequest().build();
+//        }
     }
 
 }

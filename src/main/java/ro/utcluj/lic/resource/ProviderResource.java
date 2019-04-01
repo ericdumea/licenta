@@ -5,13 +5,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ro.utcluj.lic.domain.Provider;
+import ro.utcluj.lic.domain.SimpleProvider;
+import ro.utcluj.lic.service.FireflyImplementation;
 import ro.utcluj.lic.service.ProviderService;
 
-import java.io.IOException;
-import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 
-import static org.springframework.http.ResponseEntity.badRequest;
 import static org.springframework.http.ResponseEntity.ok;
 
 @RestController
@@ -20,11 +20,17 @@ public class ProviderResource {
 
     private final ProviderService providerService;
 
-    public ProviderResource(ProviderService providerService) {
+    private final FireflyImplementation fireflyImplementation;
+
+    public ProviderResource(ProviderService providerService, FireflyImplementation fireflyImplementation) {
         this.providerService = providerService;
+        this.fireflyImplementation = fireflyImplementation;
     }
 
-
+    @GetMapping("/test-algo")
+    public List<List<SimpleProvider>> doAlgorithm() {
+        return Collections.singletonList(fireflyImplementation.doAlgorithm());
+    }
 
 
     @GetMapping("/load-provider-data")

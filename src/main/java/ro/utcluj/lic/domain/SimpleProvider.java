@@ -3,6 +3,7 @@ package ro.utcluj.lic.domain;
 import org.bson.types.ObjectId;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public class SimpleProvider {
 
@@ -23,6 +24,7 @@ public class SimpleProvider {
         this.energy = provider.getEnergy().get(0);
         this.setFlag(false);
     }
+
 
     public ObjectId getId() {
         return id;
@@ -54,5 +56,21 @@ public class SimpleProvider {
 
     public void setFlag(boolean flag) {
         this.flag = flag;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SimpleProvider that = (SimpleProvider) o;
+        return flag == that.flag &&
+                Objects.equals(id, that.id) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(energy, that.energy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, type, energy, flag);
     }
 }
