@@ -7,6 +7,7 @@ import ro.utcluj.lic.domain.SimpleProvider;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,7 @@ public class FireflyImplementation {
     private final ConsumerService consumerService;
     private final ProviderService providerService;
     private final int NO_F = 20;
-    private final int NUMBER_OF_ITERATIONS = 20;
+    private final int NUMBER_OF_ITERATIONS = 100;
     private Logger LOG = LoggerFactory.getLogger(this.getClass());
     private BigDecimal demandedEnergy;
 
@@ -56,8 +57,6 @@ public class FireflyImplementation {
 
     private List<SimpleProvider> crossover(List<SimpleProvider> fsolI, List<SimpleProvider> fsolJ, int r) {
 
-        //TODO ::: implement an comparison for BEST CASE
-
         List<SimpleProvider> list1 = new ArrayList<>();
         list1.addAll(fsolI.subList(0, r));
         list1.addAll(fsolJ.subList(r, fsolJ.size()));
@@ -66,11 +65,9 @@ public class FireflyImplementation {
         list2.addAll(fsolJ.subList(0, r));
         list2.addAll(fsolI.subList(r, fsolI.size()));
 
-        LOG.info("LIST1: {}, LIST2: {}, CROSSOVER SIZE: {}", fsolI.size(), fsolJ.size(), list1.size());
+        //LOG.info("LIST1: {}, LIST2: {}, CROSSOVER SIZE: {}", fsolI.size(), fsolJ.size(), list1.size());
 
-        // TODO ::: REALLY IMPLEMENT THAT
-
-        return list1;
+        return getBestSolutionByFitness(Arrays.asList(list1, list2));
     }
 
     public List<SimpleProvider> doAlgorithm() {
@@ -81,6 +78,8 @@ public class FireflyImplementation {
         demandedEnergy = consumerService.loadConsumersFromFile().get(0);
 
         List<List<SimpleProvider>> finalSol = new ArrayList<>();
+
+        List<List<SimpleProvider>> solBest = new ArrayList<>();
 
         for (int i = 0; i < NO_F; i++) {
             finalSol.add(generateRandomSolution(energyProductionSet));
@@ -95,11 +94,11 @@ public class FireflyImplementation {
                     BigDecimal fitnessI = fitness(finalSol.get(i));
                     BigDecimal fitnessJ = fitness(finalSol.get(j));
 
-                    LOG.info("{}   {}  ", fitnessI, fitnessJ);
+                    //LOG.info("{}   {}  ", fitnessI, fitnessJ);
 
                     if (fitnessI.compareTo(fitnessJ) > 0) {
                         int r = fitnessI.subtract(fitnessJ).intValue();
-                        LOG.info("R: {}, iteration: {}", r, iteration);
+                        //LOG.info("R: {}, iteration: {}", r, iteration);
 
                         finalSol.set(i, crossover(finalSol.get(i), finalSol.get(j), r));
                         mutation(finalSol.get(i));
@@ -107,29 +106,44 @@ public class FireflyImplementation {
                     }
                 }
             }
-
+            List<SimpleProvider> bestSolutionOfIteration = getBestSolutionByFitness(finalSol);
+            solBest.add(bestSolutionOfIteration);
+            mutation(bestSolutionOfIteration);
             iteration++;
-//            LOG.info("{}", iteration);
+            LOG.info("{}", iteration);
         } while (iteration < NUMBER_OF_ITERATIONS);
 
-
-        return finalSol.get(0);
+        return getBestSolutionByFitness(solBest);
     }
 
 
     private List<SimpleProvider> getBestSolution(List<List<SimpleProvider>> fSol) {
         int choice = 0, countGoodProviders = 0;
-        for(List<SimpleProvider> list : fSol) {
+        for (List<SimpleProvider> list : fSol) {
 
             Map<String, List<SimpleProvider>> simpleProviders = list.stream()
                     .filter(SimpleProvider::isFlag)
                     .collect(Collectors.groupingBy(SimpleProvider::getType));
 
             Map<String, Integer> integerMap = new HashMap<>();
-            for(Map.Entry<String, List<SimpleProvider>> stringListEntry : simpleProviders.entrySet()) {
+            for (Map.Entry<String, List<SimpleProvider>> stringListEntry : simpleProviders.entrySet()) {
                 integerMap.put(stringListEntry.getKey(), stringListEntry.getValue().size());
             }
         }
+        return fSol.get(choice);
+    }
+
+    private List<SimpleProvider> getBestSolutionByFitness(List<List<SimpleProvider>> fSol) {
+        int choice = 0;
+
+        BigDecimal minimal = new BigDecimal(0.0);
+
+        for (List<SimpleProvider> list : fSol) {
+            if (minimal.compareTo(fitness(list)) < 0) {
+                choice = fSol.indexOf(list);
+            }
+        }
+
         return fSol.get(choice);
     }
 
