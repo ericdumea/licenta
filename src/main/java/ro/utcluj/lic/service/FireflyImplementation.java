@@ -118,11 +118,11 @@ public class FireflyImplementation {
     }
 
 
-    public List<SimpleProvider> doAlgorithm() {
+    public List<SimpleProvider> doAlgorithm(int idx) {
         List<SimpleProvider> energyProductionSet = providerService.getAllProviders().stream()
                 .map(SimpleProvider::new)
                 .collect(Collectors.toList());
-        demandedEnergy = consumerService.loadConsumersFromFile().get(19);
+        demandedEnergy = consumerService.loadConsumersFromFile().get(idx);
         //demandedEnergy = consumerService.loadConsumersFromFile().get(0);
         //demandedEnergy = BigDecimal.valueOf(56);
         List<List<SimpleProvider>> finalSol = new ArrayList<>();
@@ -168,7 +168,7 @@ public class FireflyImplementation {
             solBest.add(bestSolutionOfIteration);
 
             fitnessValue = fitness(bestSolutionByFitnessList);
-            LOG.info("(Algo) Fitness after assign: {}", fitnessValue);
+            //LOG.info("(Algo) Fitness after assign: {}", fitnessValue);
 
 
             mutation(bestSolutionByFitnessList, fitnessValue);

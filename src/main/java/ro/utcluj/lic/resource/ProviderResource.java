@@ -30,11 +30,11 @@ public class ProviderResource {
 
     @GetMapping("/test-algo")
     public List<List<SimpleProvider>> doAlgorithm() {
-//        for (int i = 0; i < 500; i++) {
-//            fireflyImplementation.doAlgorithm();
+//        for (int i = 0; i < 100; i++) {
+//            fireflyImplementation.doAlgorithm(i);
 //          //  gc();
 //        }
-        return Collections.singletonList(fireflyImplementation.doAlgorithm());
+        return Collections.singletonList(fireflyImplementation.doAlgorithm(19));
     }
 
 
