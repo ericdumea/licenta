@@ -12,6 +12,7 @@ import ro.utcluj.lic.service.ProviderService;
 import java.util.Collections;
 import java.util.List;
 
+import static java.lang.System.gc;
 import static org.springframework.http.ResponseEntity.ok;
 
 @RestController
@@ -29,6 +30,10 @@ public class ProviderResource {
 
     @GetMapping("/test-algo")
     public List<List<SimpleProvider>> doAlgorithm() {
+//        for (int i = 0; i < 500; i++) {
+//            fireflyImplementation.doAlgorithm();
+//          //  gc();
+//        }
         return Collections.singletonList(fireflyImplementation.doAlgorithm());
     }
 
