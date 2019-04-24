@@ -22,8 +22,8 @@ public class FireflyImplementation {
 
     private final ConsumerService consumerService;
     private final ProviderService providerService;
-    private final int NO_F = 250;
-    private final int NUMBER_OF_ITERATIONS = 1000;
+
+
     private Logger LOG = LoggerFactory.getLogger(this.getClass());
     private BigDecimal demandedEnergy;
 
@@ -118,32 +118,28 @@ public class FireflyImplementation {
     }
 
 
-    public List<SimpleProvider> doAlgorithm(int idx) {
+    public List<SimpleProvider> doAlgorithm(int idx, int numberOfFireflies, int numberOfIterations) {
+        LOG.info("<<<< Started the algorithm.");
         List<SimpleProvider> energyProductionSet = providerService.getAllProviders().stream()
                 .map(SimpleProvider::new)
                 .collect(Collectors.toList());
         demandedEnergy = consumerService.loadConsumersFromFile().get(idx);
-        //demandedEnergy = consumerService.loadConsumersFromFile().get(0);
-        //demandedEnergy = BigDecimal.valueOf(56);
         List<List<SimpleProvider>> finalSol = new ArrayList<>();
 
         List<List<SimpleProvider>> solBest = new ArrayList<>();
 
-        for (int i = 0; i < NO_F; i++) {
+        for (int i = 0; i < numberOfFireflies; i++) {
             finalSol.add(generateRandomSolution(energyProductionSet));
         }
 
         int iteration = 0;
         BigDecimal fitnessValue;
-        double threshold = 0.009;
 
         do {
-            for (int i = 0; i < NO_F; i++) {
-                for (int j = i + 1; j < NO_F; j++) {
+            for (int i = 0; i < numberOfFireflies; i++) {
+                for (int j = i + 1; j < numberOfFireflies; j++) {
                     BigDecimal fitnessI = fitness(finalSol.get(i));
                     BigDecimal fitnessJ = fitness(finalSol.get(j));
-
-                    //LOG.info("Fitness I: {}, J: {}  ", fitnessI, fitnessJ);
 
                     if (fitnessI.compareTo(fitnessJ) > 0) {
                         long r = fitnessI.subtract(fitnessJ).longValue();
@@ -152,31 +148,20 @@ public class FireflyImplementation {
 
                         finalSol.set(i, crossoverByNumberOfPoints(finalSol.get(i), finalSol.get(j), (int) r));
 
-                        //LOG.info("(Algo) Fitness after assign: {}", fitness(finalSol.get(i)));
-
-                       //LOG.info("(Algo) number of activated: {}", finalSol.get(i).stream().filter(SimpleProvider::isFlag).count());
-
                         mutation(finalSol.get(i), fitnessI);
                     }
                 }
             }
 
             List<SimpleProvider> bestSolutionByFitnessList = getBestSolutionByFitness(finalSol);
-
             List<SimpleProvider> bestSolutionOfIteration = bestSolutionByFitnessList.stream().map(this::simpleProviderCloneWithoutFlag).collect(Collectors.toList());
 
             solBest.add(bestSolutionOfIteration);
-
             fitnessValue = fitness(bestSolutionByFitnessList);
-            //LOG.info("(Algo) Fitness after assign: {}", fitnessValue);
-
-
             mutation(bestSolutionByFitnessList, fitnessValue);
             iteration++;
-            //gc();
-            //if(iteration%500 == 0 || iteration < 20)
-                //LOG.info("<<<<<<<<<<<<<<<<<<<<<<< Iteration : {}", iteration);
-        } while (iteration < NUMBER_OF_ITERATIONS); // (fitnessValue.compareTo(BigDecimal.valueOf(threshold)) < 0 && fitnessValue.compareTo(BigDecimal.valueOf(0 - threshold)) > 0)
+
+        } while (iteration < numberOfIterations); // (fitnessValue.compareTo(BigDecimal.valueOf(threshold)) < 0 && fitnessValue.compareTo(BigDecimal.valueOf(0 - threshold)) > 0) <- optim local
 
         List<SimpleProvider> bestSolutionByFitness = getBestSolutionByFitness(solBest);
         LOG.info("Number of providers activated: {}", bestSolutionByFitness.stream().filter(SimpleProvider::isFlag).count());
@@ -185,12 +170,63 @@ public class FireflyImplementation {
         return bestSolutionByFitness;
     }
 
+    public BigDecimal findFitnessValue(int numberOfFireflies, int numberOfIterations) {
+        //LOG.info("<<<< Started the algorithm.");
+        List<SimpleProvider> energyProductionSet = providerService.getAllProviders().stream()
+                .map(SimpleProvider::new)
+                .collect(Collectors.toList());
+        demandedEnergy = consumerService.loadConsumersFromFile().get(10);
+        List<List<SimpleProvider>> finalSol = new ArrayList<>();
+
+        List<List<SimpleProvider>> solBest = new ArrayList<>();
+
+        for (int i = 0; i < numberOfFireflies; i++) {
+            finalSol.add(generateRandomSolution(energyProductionSet));
+        }
+
+        int iteration = 0;
+        BigDecimal fitnessValue;
+
+        do {
+            for (int i = 0; i < numberOfFireflies; i++) {
+                for (int j = i + 1; j < numberOfFireflies; j++) {
+                    BigDecimal fitnessI = fitness(finalSol.get(i));
+                    BigDecimal fitnessJ = fitness(finalSol.get(j));
+
+                    if (fitnessI.compareTo(fitnessJ) > 0) {
+                        long r = fitnessI.subtract(fitnessJ).longValue();
+
+                        //LOG.info("R: {}, iteration: {}", fitnessI.subtract(fitnessJ), iteration);
+
+                        finalSol.set(i, crossoverByNumberOfPoints(finalSol.get(i), finalSol.get(j), (int) r));
+
+                        mutation(finalSol.get(i), fitnessI);
+                    }
+                }
+            }
+
+            List<SimpleProvider> bestSolutionByFitnessList = getBestSolutionByFitness(finalSol);
+            List<SimpleProvider> bestSolutionOfIteration = bestSolutionByFitnessList.stream().map(this::simpleProviderCloneWithoutFlag).collect(Collectors.toList());
+
+            solBest.add(bestSolutionOfIteration);
+            fitnessValue = fitness(bestSolutionByFitnessList);
+            mutation(bestSolutionByFitnessList, fitnessValue);
+            iteration++;
+
+        } while (iteration < numberOfIterations); // (fitnessValue.compareTo(BigDecimal.valueOf(threshold)) < 0 && fitnessValue.compareTo(BigDecimal.valueOf(0 - threshold)) > 0) <- optim local
+
+        List<SimpleProvider> bestSolutionByFitness = getBestSolutionByFitness(solBest);
+        //LOG.info("Number of providers activated: {}", bestSolutionByFitness.stream().filter(SimpleProvider::isFlag).count());
+        //LOG.info("Final fitness value: {}", fitness(bestSolutionByFitness));
+
+        return fitness(bestSolutionByFitness);
+    }
+
     private void mutation(List<SimpleProvider> providers, BigDecimal fitnessValue) {
         int index;
 
         if(providers.stream().noneMatch(SimpleProvider::isFlag)) {
             index = ThreadLocalRandom.current().nextInt(0, providers.size());
-            //LOG.info("<<<<<< (Mutation) number of activated: {}", providers.stream().filter(SimpleProvider::isFlag).count());
         } else {
             if (fitnessValue.compareTo(BigDecimal.ZERO) < 0) {
                 do {
@@ -232,9 +268,6 @@ public class FireflyImplementation {
                 choice = fSol.indexOf(list);
             }
         }
-        //LOG.info("Choice: {} ", choice);
         return fSol.get(choice);
     }
-
-
 }

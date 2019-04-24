@@ -1,18 +1,19 @@
-package ro.utcluj.lic.resource;
+package ro.utcluj.lic.api;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ro.utcluj.lic.domain.Constants;
 import ro.utcluj.lic.domain.Provider;
 import ro.utcluj.lic.domain.SimpleProvider;
 import ro.utcluj.lic.service.FireflyImplementation;
 import ro.utcluj.lic.service.ProviderService;
+import ro.utcluj.lic.service.TestAlgorithmParametersService;
 
 import java.util.Collections;
 import java.util.List;
 
-import static java.lang.System.gc;
 import static org.springframework.http.ResponseEntity.ok;
 
 @RestController
@@ -23,9 +24,12 @@ public class ProviderResource {
 
     private final FireflyImplementation fireflyImplementation;
 
-    public ProviderResource(ProviderService providerService, FireflyImplementation fireflyImplementation) {
+    private final TestAlgorithmParametersService testAlgorithmParametersService;
+
+    public ProviderResource(ProviderService providerService, FireflyImplementation fireflyImplementation, TestAlgorithmParametersService testAlgorithmParametersService) {
         this.providerService = providerService;
         this.fireflyImplementation = fireflyImplementation;
+        this.testAlgorithmParametersService = testAlgorithmParametersService;
     }
 
     @GetMapping("/test-algo")
@@ -34,9 +38,14 @@ public class ProviderResource {
 //            fireflyImplementation.doAlgorithm(i);
 //          //  gc();
 //        }
-        return Collections.singletonList(fireflyImplementation.doAlgorithm(19));
+        return Collections.singletonList(fireflyImplementation.doAlgorithm(19, Constants.NO_F, Constants.NO_ITERATIONS));
     }
 
+    //FIXME to be converted to POST
+    @GetMapping("/excel")
+    public ResponseEntity<Void> dumpToExcelTest() {
+        return testAlgorithmParametersService.testAlgorithm();
+    }
 
     @GetMapping("/load-provider-data")
     public ResponseEntity<List<Provider>> loadProducerDataInDB(){
