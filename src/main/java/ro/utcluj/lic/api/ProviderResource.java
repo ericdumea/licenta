@@ -3,6 +3,7 @@ package ro.utcluj.lic.api;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ro.utcluj.lic.domain.Constants;
 import ro.utcluj.lic.domain.Provider;
@@ -33,12 +34,12 @@ public class ProviderResource {
     }
 
     @GetMapping("/test-algo")
-    public List<List<SimpleProvider>> doAlgorithm() {
+    public List<List<SimpleProvider>> doAlgorithm(@RequestParam String type, @RequestParam double percentage) {
 //        for (int i = 0; i < 100; i++) {
 //            fireflyImplementation.doAlgorithm(i);
 //          //  gc();
 //        }
-        return Collections.singletonList(fireflyImplementation.doAlgorithm(19, Constants.NO_F, Constants.NO_ITERATIONS));
+        return Collections.singletonList(fireflyImplementation.doAlgorithm(19, Constants.NO_F, Constants.NO_ITERATIONS, type, percentage));
     }
 
     //FIXME to be converted to POST

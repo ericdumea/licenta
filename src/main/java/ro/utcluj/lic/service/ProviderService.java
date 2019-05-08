@@ -1,6 +1,5 @@
 package ro.utcluj.lic.service;
 
-import javafx.util.converter.BigDecimalStringConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,24 +15,26 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class ProviderService {
 
     private final ProviderRepository providerRepository;
 
-    Logger LOG = LoggerFactory.getLogger(this.getClass());
+    private final String[] PROVIDER_TYPES = {"WIND", "SOLAR", "TIDE", "TRADITIONAL"};
+
+    private final Logger LOG = LoggerFactory.getLogger(this.getClass());
 
     public ProviderService(ProviderRepository providerRepository) {
         this.providerRepository = providerRepository;
     }
 
-
     public List<Provider> getAllProviders() {
         return providerRepository.findAll();
     }
 
-    public List<Provider> insertProviders(){
+    public List<Provider> insertProviders() {
 
         List<Provider> providers = readProvidersFromFile();
         return providerRepository.insert(providers);
@@ -49,7 +50,6 @@ public class ProviderService {
                     "C:\\school\\Likenta\\licenta\\providers.txt"))));
             String line;
             String[] numbers;
-            int nrOfProvider = 0;
 
             while ((line = reader.readLine()) != null) {
                 numbers = line.split("\\s+");
@@ -60,8 +60,7 @@ public class ProviderService {
                 Provider provider = new Provider();
                 provider.setEnergy(finalNumbersRead);
                 provider.setFlag(false);
-                provider.setProducerType("Type "+ nrOfProvider);
-                nrOfProvider++;
+                provider.setProducerType(PROVIDER_TYPES[ThreadLocalRandom.current().nextInt(0, 4)]);
                 providers.add(provider);
 
             }
@@ -78,7 +77,6 @@ public class ProviderService {
         }
         return providers;
     }
-
 
 
 }

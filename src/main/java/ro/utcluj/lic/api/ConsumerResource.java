@@ -2,6 +2,7 @@ package ro.utcluj.lic.api;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ro.utcluj.lic.service.ConsumerService;
@@ -23,12 +24,13 @@ public class ConsumerResource {
     }
 
     @GetMapping("/load-consumer-data")
-    public ResponseEntity<List<BigDecimal>> loadConsumerDataInDB(){
-//        try {
-            return ok().body(consumerService.loadConsumersFromFile());
-//        } catch (IOException e) {
-//            return badRequest().build();
-//        }
+    public ResponseEntity<List<BigDecimal>> loadConsumerDataInDB() {
+        return ok().body(consumerService.loadConsumersFromFile());
     }
 
+    @PostMapping("/save-in-db")
+    public ResponseEntity<Void> insertConsumerDataInDB() {
+        consumerService.batchInsertFromFile();
+        return ok().build();
+    }
 }

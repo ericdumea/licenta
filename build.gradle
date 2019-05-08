@@ -22,6 +22,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'builders.dsl:spreadsheet-builder-poi:1.0.5'
 	implementation 'builders.dsl:spreadsheet-builder-groovy:1.0.5'
+	implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
 
 	runtimeOnly 'com.h2database:h2'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

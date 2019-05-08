@@ -37,7 +37,7 @@ public class TestAlgorithmParametersService {
 
             //50 - 2000
 
-            for (int nrIterations = 50; nrIterations < 2000; nrIterations += 50) {
+            for (int nrIterations = 50; nrIterations < 1000; nrIterations += 50) {
                 ExcelDataExportDTO exportDTO = new ExcelDataExportDTO();
                 exportDTO.setNumberOfIterations(nrIterations);
 
@@ -47,12 +47,12 @@ public class TestAlgorithmParametersService {
 
                 for (int tests = 0; tests < 3; tests++) {
                     long timeBefore = System.currentTimeMillis();
-                    sum = sum.add(fireflyImplementation.findFitnessValue(fireflies, nrIterations));
+                    sum = sum.add(fireflyImplementation.findFitnessValue(fireflies, nrIterations, "WIND", 20.0));
                     timeSum += (System.currentTimeMillis() - timeBefore);
                 }
 
                 exportDTO.setTimingAverage(timeSum / 3.0);
-                BigDecimal average = sum.divide(BigDecimal.valueOf(3), BigDecimal.ROUND_FLOOR);
+                BigDecimal average = sum.abs().divide(BigDecimal.valueOf(3), BigDecimal.ROUND_FLOOR);
                 exportDTO.setFitnessAverage(average.doubleValue());
                 exportDTOList.add(exportDTO);
 
@@ -66,7 +66,7 @@ public class TestAlgorithmParametersService {
         //excel insert
         LOG.info("Excel dump started");
 
-        excelExportService.exportProviderDataAsPDF(data, 3);
+        excelExportService.exportProviderDataAsPDF(data, 5);
 
         return ResponseEntity.ok().build();
 

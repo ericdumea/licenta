@@ -1,9 +1,12 @@
 package ro.utcluj.lic.service;
 
 import javafx.util.converter.BigDecimalStringConverter;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import ro.utcluj.lic.domain.Consumer;
+import ro.utcluj.lic.repository.ConsumerRepository;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -19,6 +22,12 @@ import java.util.List;
 public class ConsumerService {
 
     private Logger LOG = LoggerFactory.getLogger(this.getClass());
+
+    private final ConsumerRepository consumerRepository;
+
+    public ConsumerService(ConsumerRepository consumerRepository) {
+        this.consumerRepository = consumerRepository;
+    }
 
     public List<BigDecimal> loadConsumersFromFile() {
         try {
@@ -58,4 +67,18 @@ public class ConsumerService {
         return numbersRead;
     }
 
+    public void batchInsertFromFile() {
+        List<BigDecimal> consumersData = null;
+        try {
+            consumersData = readFileAndExtractConsumers();
+        } catch (IOException e) {
+            LOG.error("Consumers couldn't have been loaded from file.", e);
+        }
+        Consumer consumer = new Consumer();
+        consumer.setId(new ObjectId());
+        consumer.setPower(consumersData);
+
+        consumerRepository.insert(consumer);
+
+    }
 }

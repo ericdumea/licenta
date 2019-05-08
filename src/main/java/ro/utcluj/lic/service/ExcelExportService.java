@@ -10,7 +10,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class ExcelExportService {
@@ -25,15 +24,21 @@ public class ExcelExportService {
             PoiSpreadsheetBuilder.create(file).build(workbookDefinition ->
                     workbookDefinition.sheet("Sheet 1", sheet -> {
                         sheet.row(r -> {
-                            r.cell("NoFireflies/NoIterations");
-                            List<Integer> iterations = exportDTOS.get(110).stream().map(ExcelDataExportDTO::getNumberOfIterations).distinct().collect(Collectors.toList());
-                            iterations.forEach(r::cell);
+                            r.cell("NoFireflies");
+                            r.cell("NoIterations");
+                            r.cell("Av. Fitness");
+                            r.cell("Av. Time");
                         });
 
-                        exportDTOS.forEach((key, value) -> sheet.row(r -> {
-                            r.cell(key);
-                            value.forEach(val -> r.cell(val.getFitnessAverage()));
-                        }));
+                        exportDTOS.forEach((key, value) ->
+                                value.forEach(excelDataExportDTO -> {
+                                    sheet.row(row -> {
+                                        row.cell(key);
+                                        row.cell(excelDataExportDTO.getNumberOfIterations());
+                                        row.cell(excelDataExportDTO.getFitnessAverage());
+                                        row.cell(excelDataExportDTO.getTimingAverage());
+                                    });
+                                }));
                     }));
 
         } catch (FileNotFoundException e) {
