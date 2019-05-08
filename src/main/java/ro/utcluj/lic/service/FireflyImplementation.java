@@ -20,37 +20,55 @@ public class FireflyImplementation {
 
     private final ConsumerService consumerService;
     private final ProviderService providerService;
-
-
+    private final BigDecimal PENALTY = new BigDecimal(2.25);
     private Logger LOG = LoggerFactory.getLogger(this.getClass());
     private BigDecimal demandedEnergy;
-
-    private final BigDecimal PENALTY = new BigDecimal(0.25);
 
     public FireflyImplementation(ConsumerService consumerService, ProviderService providerService) {
         this.consumerService = consumerService;
         this.providerService = providerService;
     }
 
-    private BigDecimal fitness(List<SimpleProvider> sol,String type, Double percentage) {
+    private BigDecimal fitness(List<SimpleProvider> sol, String type, Double percentage) {
         Optional<BigDecimal> sum = sol.stream()
                 .filter(SimpleProvider::isFlag)
                 .map(SimpleProvider::getEnergy)
                 .reduce(BigDecimal::add);
+
         long numberOfProvidersOfType = sol.stream()
                 .filter(simpleProvider -> StringUtils.equals(simpleProvider.getType(), type))
+                .filter(SimpleProvider::isFlag)
                 .count();
-        Double actualPercentage = (numberOfProvidersOfType * 100.0) / sol.size();
+
+        long numberOfProvidersActivated = sol.stream()
+                .filter(SimpleProvider::isFlag)
+                .count();
+
+        double actualPercentage = numberOfProvidersActivated != 0 ? (numberOfProvidersOfType * 100.0) / numberOfProvidersActivated : 0.0;
+
+        BigDecimal penalty = PENALTY.multiply(new BigDecimal(1.0 - actualPercentage / 100.0).abs());
+
         BigDecimal fitnessValue = sum.orElse(BigDecimal.ZERO).subtract(demandedEnergy);
-        if(actualPercentage < percentage) {
-            if(fitnessValue.compareTo(BigDecimal.ZERO) < 0) {
-                fitnessValue = fitnessValue.subtract(PENALTY);
-            } else {
-                fitnessValue = fitnessValue.add(PENALTY);
-            }
+
+        //if(actualPercentage < percentage) {
+        if (fitnessValue.compareTo(BigDecimal.ZERO) < 0) {
+            fitnessValue = fitnessValue.subtract(penalty);
+        } else {
+            fitnessValue = fitnessValue.add(penalty);
         }
+        //}
         return fitnessValue;
     }
+
+
+    private BigDecimal fitness(List<SimpleProvider> sol) {
+        Optional<BigDecimal> sum = sol.stream()
+                .filter(SimpleProvider::isFlag)
+                .map(SimpleProvider::getEnergy)
+                .reduce(BigDecimal::add);
+        return sum.orElse(BigDecimal.ZERO).subtract(demandedEnergy);
+    }
+
 
     private SimpleProvider initializeSimpleProviderViaClone(SimpleProvider simpleProvider) {
         SimpleProvider copy = new SimpleProvider();
@@ -102,7 +120,7 @@ public class FireflyImplementation {
         BigDecimal fitnessI = fitness(fsolI, type, percentage).abs();
         BigDecimal fitnessJ = fitness(fsolJ, type, percentage).abs();
 
-        LOG.info("(After Crossover) Fitness I: {}, Fitness J: {}", fitnessI, fitnessJ);
+        //LOG.info("(After Crossover) Fitness I: {}, Fitness J: {}", fitnessI, fitnessJ);
 
         return fitnessI.compareTo(fitnessJ) < 0 ? fsolI : fsolJ;
     }
@@ -111,13 +129,13 @@ public class FireflyImplementation {
         LOG.info("<<<< Started the algorithm.");
         List<SimpleProvider> bestSolutionByFitness = fireflyAlgorithm(numberOfFireflies, numberOfIterations, idx, type, percentage);
         LOG.info("Number of providers activated: {}", bestSolutionByFitness.stream().filter(SimpleProvider::isFlag).count());
-        LOG.info("Final fitness value: {}", fitness(bestSolutionByFitness, type, percentage));
+        LOG.info("Final fitness value: {}", fitness(bestSolutionByFitness));
         long numberOfProvidersOfType = bestSolutionByFitness.stream()
                 .filter(simpleProvider -> StringUtils.equals(simpleProvider.getType(), type))
+                .filter(SimpleProvider::isFlag)
                 .count();
-        LOG.info("Number of providers of type : {} activated.", type);
-        LOG.info("Percentage desired, minimum of {}, actual: {}", percentage, (numberOfProvidersOfType * 100.0) / bestSolutionByFitness.size());
-
+        LOG.info("Number of providers of type : {} activated: {}", type, numberOfProvidersOfType);
+        LOG.info("Percentage desired, minimum of {}, actual: {}", percentage, (numberOfProvidersOfType * 100.0) / bestSolutionByFitness.stream().filter(SimpleProvider::isFlag).count());
         return bestSolutionByFitness;
     }
 
@@ -136,6 +154,7 @@ public class FireflyImplementation {
                 .map(SimpleProvider::new)
                 .collect(Collectors.toList());
         demandedEnergy = consumerService.loadConsumersFromFile().get(i2);
+        //LOG.info("Consumer {}, demanded energy: {}",i2, demandedEnergy);
         List<List<SimpleProvider>> finalSol = new ArrayList<>();
 
         List<List<SimpleProvider>> solBest = new ArrayList<>();
@@ -155,11 +174,8 @@ public class FireflyImplementation {
 
                     if (fitnessI.compareTo(fitnessJ) > 0) {
                         long r = fitnessI.subtract(fitnessJ).longValue();
-
                         //LOG.info("R: {}, iteration: {}", fitnessI.subtract(fitnessJ), iteration);
-
                         finalSol.set(i, crossoverByNumberOfPoints(finalSol.get(i), finalSol.get(j), (int) r, type, percentage));
-
                         mutation(finalSol.get(i), fitnessI);
                     }
                 }
@@ -174,14 +190,13 @@ public class FireflyImplementation {
             iteration++;
 
         } while (iteration < numberOfIterations); // (fitnessValue.compareTo(BigDecimal.valueOf(threshold)) < 0 && fitnessValue.compareTo(BigDecimal.valueOf(0 - threshold)) > 0) <- optim local
-
         return getBestSolutionByFitness(solBest, type, percentage);
     }
 
     private void mutation(List<SimpleProvider> providers, BigDecimal fitnessValue) {
         int index;
 
-        if(providers.stream().noneMatch(SimpleProvider::isFlag)) {
+        if (providers.stream().noneMatch(SimpleProvider::isFlag)) {
             index = ThreadLocalRandom.current().nextInt(0, providers.size());
         } else {
             if (fitnessValue.compareTo(BigDecimal.ZERO) < 0) {
@@ -196,23 +211,7 @@ public class FireflyImplementation {
         }
         providers.get(index).setFlag(!providers.get(index).isFlag());
     }
-
-    private List<SimpleProvider> getBestSolution(List<List<SimpleProvider>> fSol) {
-        int choice = 0, countGoodProviders = 0;
-        for (List<SimpleProvider> list : fSol) {
-
-            Map<String, List<SimpleProvider>> simpleProviders = list.stream()
-                    .filter(SimpleProvider::isFlag)
-                    .collect(Collectors.groupingBy(SimpleProvider::getType));
-
-            Map<String, Integer> integerMap = new HashMap<>();
-            for (Map.Entry<String, List<SimpleProvider>> stringListEntry : simpleProviders.entrySet()) {
-                integerMap.put(stringListEntry.getKey(), stringListEntry.getValue().size());
-            }
-        }
-        return fSol.get(choice);
-    }
-
+    
     private List<SimpleProvider> getBestSolutionByFitness(List<List<SimpleProvider>> fSol, String type, Double percentage) {
         int choice = 0;
         BigDecimal minimal = fitness(fSol.get(0), type, percentage).abs();
