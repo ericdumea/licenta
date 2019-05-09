@@ -35,10 +35,10 @@ public class ProviderResource {
 
     @GetMapping("/test-algo")
     public List<List<SimpleProvider>> doAlgorithm(@RequestParam String type, @RequestParam double percentage) {
-//        for (int i = 0; i < 100; i++) {
-//            fireflyImplementation.doAlgorithm(i);
-//          //  gc();
-//        }
+        for (int i = 0; i < 23; i++) {
+            fireflyImplementation.doAlgorithm(i, Constants.NO_F, Constants.NO_ITERATIONS, type, percentage);
+          //  gc();
+        }
         return Collections.singletonList(fireflyImplementation.doAlgorithm(19, Constants.NO_F, Constants.NO_ITERATIONS, type, percentage));
     }
 

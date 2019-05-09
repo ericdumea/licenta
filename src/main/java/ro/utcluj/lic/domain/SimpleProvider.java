@@ -18,13 +18,12 @@ public class SimpleProvider {
     public SimpleProvider() {
     }
 
-    public SimpleProvider(Provider provider) {
+    public SimpleProvider(Provider provider, int idx) {
         this.id = provider.getId();
         this.type = provider.getProducerType();
-        this.energy = provider.getEnergy().get(0);
+        this.energy = provider.getEnergy().get(idx);
         this.setFlag(false);
     }
-
 
     public ObjectId getId() {
         return id;

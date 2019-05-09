@@ -8,9 +8,7 @@ import ro.utcluj.lic.domain.SimpleProvider;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -20,7 +18,7 @@ public class FireflyImplementation {
 
     private final ConsumerService consumerService;
     private final ProviderService providerService;
-    private final BigDecimal PENALTY = new BigDecimal(2.25);
+    private final BigDecimal PENALTY = new BigDecimal(2.2);
     private Logger LOG = LoggerFactory.getLogger(this.getClass());
     private BigDecimal demandedEnergy;
 
@@ -50,13 +48,13 @@ public class FireflyImplementation {
 
         BigDecimal fitnessValue = sum.orElse(BigDecimal.ZERO).subtract(demandedEnergy);
 
-        //if(actualPercentage < percentage) {
-        if (fitnessValue.compareTo(BigDecimal.ZERO) < 0) {
-            fitnessValue = fitnessValue.subtract(penalty);
-        } else {
-            fitnessValue = fitnessValue.add(penalty);
+        if (actualPercentage < percentage) {
+            if (fitnessValue.compareTo(BigDecimal.ZERO) < 0) {
+                fitnessValue = fitnessValue.subtract(penalty);
+            } else {
+                fitnessValue = fitnessValue.add(penalty);
+            }
         }
-        //}
         return fitnessValue;
     }
 
@@ -151,9 +149,10 @@ public class FireflyImplementation {
 
     private List<SimpleProvider> fireflyAlgorithm(int numberOfFireflies, int numberOfIterations, int i2, String type, Double percentage) {
         List<SimpleProvider> energyProductionSet = providerService.getAllProviders().stream()
-                .map(SimpleProvider::new)
+                .map(provider -> new SimpleProvider(provider, i2))
                 .collect(Collectors.toList());
         demandedEnergy = consumerService.loadConsumersFromFile().get(i2);
+        //demandedEnergy = new BigDecimal(5);
         //LOG.info("Consumer {}, demanded energy: {}",i2, demandedEnergy);
         List<List<SimpleProvider>> finalSol = new ArrayList<>();
 
@@ -213,6 +212,8 @@ public class FireflyImplementation {
     }
     
     private List<SimpleProvider> getBestSolutionByFitness(List<List<SimpleProvider>> fSol, String type, Double percentage) {
+
+
         int choice = 0;
         BigDecimal minimal = fitness(fSol.get(0), type, percentage).abs();
 
@@ -220,6 +221,21 @@ public class FireflyImplementation {
             BigDecimal fitnessValue = fitness(list, type, percentage).abs();
             if ((fitnessValue.compareTo(minimal)) < 0) {
                 minimal = fitness(list, type, percentage);
+                choice = fSol.indexOf(list);
+            }
+        }
+        return fSol.get(choice);
+
+    }
+
+    private List<SimpleProvider> getBestSolutionByFitnessOnFinalStep(List<List<SimpleProvider>> fSol, String type, Double percentage) {
+        int choice = 0;
+        BigDecimal minimal = fitness(fSol.get(0)).abs();
+
+        for (List<SimpleProvider> list : fSol) {
+            BigDecimal fitnessValue = fitness(list).abs();
+            if ((fitnessValue.compareTo(minimal)) < 0) {
+                minimal = fitness(list);
                 choice = fSol.indexOf(list);
             }
         }
