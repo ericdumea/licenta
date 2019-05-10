@@ -2,12 +2,15 @@ package ro.utcluj.lic.api;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ro.utcluj.lic.domain.Constants;
 import ro.utcluj.lic.domain.Provider;
-import ro.utcluj.lic.domain.SimpleProvider;
+import ro.utcluj.lic.domain.ProviderType;
 import ro.utcluj.lic.service.FireflyImplementation;
 import ro.utcluj.lic.service.ProviderService;
 import ro.utcluj.lic.service.TestAlgorithmParametersService;
@@ -33,13 +36,19 @@ public class ProviderResource {
         this.testAlgorithmParametersService = testAlgorithmParametersService;
     }
 
+    @PostMapping("/test-algo")
+    public List<Provider> doAlgorithmWithProviderType(@RequestBody List<ProviderType> providerTypes) {
+        return fireflyImplementation.doAlgorithm(19, Constants.NO_F, Constants.NO_ITERATIONS, providerTypes);
+    }
+
     @GetMapping("/test-algo")
-    public List<List<SimpleProvider>> doAlgorithm(@RequestParam String type, @RequestParam double percentage) {
-        for (int i = 0; i < 23; i++) {
-            fireflyImplementation.doAlgorithm(i, Constants.NO_F, Constants.NO_ITERATIONS, type, percentage);
-          //  gc();
-        }
-        return Collections.singletonList(fireflyImplementation.doAlgorithm(19, Constants.NO_F, Constants.NO_ITERATIONS, type, percentage));
+    public List<List<Provider>> doAlgorithm(@RequestParam String type, @RequestParam int percentage) {
+//        for (int i = 0; i < 23; i++) {
+//            fireflyImplementation.doAlgorithm(i, Constants.NO_F, Constants.NO_ITERATIONS, type, percentage);
+//          //  gc();
+//        }
+        List<ProviderType> providerTypes = Collections.singletonList(new ProviderType(type, percentage));
+        return Collections.singletonList(fireflyImplementation.doAlgorithm(19, Constants.NO_F, Constants.NO_ITERATIONS, providerTypes));
     }
 
     //FIXME to be converted to POST
@@ -49,8 +58,8 @@ public class ProviderResource {
     }
 
     @GetMapping("/load-provider-data")
-    public ResponseEntity<List<Provider>> loadProducerDataInDB(){
-            return ok().body(providerService.insertProviders());
+    public ResponseEntity<List<Provider>> loadProducerDataInDB() {
+        return ok().body(providerService.insertProviders());
     }
 
     @GetMapping

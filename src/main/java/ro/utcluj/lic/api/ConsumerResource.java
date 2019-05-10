@@ -1,10 +1,13 @@
 package ro.utcluj.lic.api;
 
+import org.bson.types.ObjectId;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ro.utcluj.lic.domain.Consumer;
 import ro.utcluj.lic.service.ConsumerService;
 
 import java.math.BigDecimal;
@@ -32,5 +35,15 @@ public class ConsumerResource {
     public ResponseEntity<Void> insertConsumerDataInDB() {
         consumerService.batchInsertFromFile();
         return ok().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Consumer>> getAllConsumers() {
+        return ok().body(consumerService.getAllConsumers());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Consumer> getConsumerById(@PathVariable ObjectId id) {
+        return ok().build(); //TODO get by id, consumer
     }
 }

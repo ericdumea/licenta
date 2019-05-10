@@ -1,6 +1,5 @@
 package ro.utcluj.lic.service;
 
-import javafx.util.converter.BigDecimalStringConverter;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,9 +20,8 @@ import java.util.List;
 @Service
 public class ConsumerService {
 
-    private Logger LOG = LoggerFactory.getLogger(this.getClass());
-
     private final ConsumerRepository consumerRepository;
+    private Logger LOG = LoggerFactory.getLogger(this.getClass());
 
     public ConsumerService(ConsumerRepository consumerRepository) {
         this.consumerRepository = consumerRepository;
@@ -40,22 +38,18 @@ public class ConsumerService {
 
     private List<BigDecimal> readFileAndExtractConsumers() throws IOException {
         BufferedReader reader = null;
-        BigDecimalStringConverter bigDecimalStringConverter = new BigDecimalStringConverter();
-
         List<BigDecimal> numbersRead = new ArrayList<>();
-
         try {
             reader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(
                     "C:\\school\\Likenta\\licenta\\consumer.txt"))));
             String line;
             String[] numbers;
-
             while ((line = reader.readLine()) != null) {
                 numbers = line.split("\\s+");
                 Arrays.stream(numbers).forEach(s ->
                         numbersRead.add(new BigDecimal(s)));
             }
-        }finally {
+        } finally {
             if (reader != null) {
                 try {
                     reader.close();
@@ -79,6 +73,10 @@ public class ConsumerService {
         consumer.setPower(consumersData);
 
         consumerRepository.insert(consumer);
-
     }
+
+    public List<Consumer> getAllConsumers() {
+        return consumerRepository.findAll();
+    }
+
 }

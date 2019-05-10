@@ -56,13 +56,8 @@ public class ProviderService {
                 List<BigDecimal> finalNumbersRead = new ArrayList<>();
                 Arrays.stream(numbers).forEach(s ->
                         finalNumbersRead.add(new BigDecimal(s)));
-
-                Provider provider = new Provider();
-                provider.setEnergy(finalNumbersRead);
-                provider.setFlag(false);
-                provider.setProducerType(PROVIDER_TYPES[ThreadLocalRandom.current().nextInt(0, 4)]);
+                Provider provider = createProvider(finalNumbersRead);
                 providers.add(provider);
-
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -76,6 +71,15 @@ public class ProviderService {
             }
         }
         return providers;
+    }
+
+    private Provider createProvider(List<BigDecimal> finalNumbersRead) {
+        Provider provider = new Provider();
+        provider.setEnergy(finalNumbersRead);
+        provider.setFlag(false);
+        provider.setType(PROVIDER_TYPES[ThreadLocalRandom.current().nextInt(0, 4)]);
+        provider.setPrice(ThreadLocalRandom.current().nextDouble(0,100));
+        return provider;
     }
 
 

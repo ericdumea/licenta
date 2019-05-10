@@ -11,12 +11,13 @@ public class Provider {
 
     private ObjectId id;
 
-    private String producerType;
+    private String type;
 
-    private Boolean flag;
+    private boolean flag;
 
-    //FIXME to be converted to a list of 24, represinting the hours
     private List<BigDecimal> energy;
+
+    private double price;
 
     public Provider() {
     }
@@ -29,15 +30,15 @@ public class Provider {
         this.id = id;
     }
 
-    public String getProducerType() {
-        return producerType;
+    public String getType() {
+        return type;
     }
 
-    public void setProducerType(String producerType) {
-        this.producerType = producerType;
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public Boolean getFlag() {
+    public boolean isFlag() {
         return flag;
     }
 
@@ -51,5 +52,13 @@ public class Provider {
 
     public void setEnergy(List<BigDecimal> energy) {
         this.energy = energy;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
     }
 }

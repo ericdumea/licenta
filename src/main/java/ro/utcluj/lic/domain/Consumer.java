@@ -1,20 +1,23 @@
 package ro.utcluj.lic.domain;
 
 import org.bson.types.ObjectId;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+@Document(collection = "consumer")
 public class Consumer {
     private ObjectId id;
 
     private List<BigDecimal> power;
 
+    private double price;
+
     public Consumer() {
     }
 
     public Consumer(List<BigDecimal> power) {
-
         this.power = power;
     }
 
@@ -32,5 +35,13 @@ public class Consumer {
 
     public void setId(ObjectId id) {
         this.id = id;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
     }
 }
