@@ -24,8 +24,10 @@ public class FireflyImplementation {
     private final Logger LOG = LoggerFactory.getLogger(this.getClass());
     private Consumer consumer;
 
-    private BigDecimal penaltyWeightHeterogenity = new BigDecimal(0.2);
-    private BigDecimal penaltyWeightPrice = new BigDecimal(0.1);
+    //FIXME these two need more tweaking
+
+    private BigDecimal penaltyWeightHeterogeneity = new BigDecimal(2.5);
+    private BigDecimal penaltyWeightPrice = new BigDecimal(0.025);
 
     public FireflyImplementation(ConsumerService consumerService, ProviderService providerService) {
         this.consumerService = consumerService;
@@ -37,9 +39,10 @@ public class FireflyImplementation {
         Optional<BigDecimal> sum = sol.stream()
                 .filter(Provider::isFlag)
                 .map(Provider::getEnergy)
-                .map(list -> list.get(0))
+                .map(list -> list.get(19))
                 .reduce(BigDecimal::add);
-        BigDecimal energyFitnessValue = consumer.getPower().get(19).subtract(sum.orElse(BigDecimal.ZERO)).abs();
+
+        BigDecimal energyFitnessValue = sum.orElse(BigDecimal.ZERO).subtract(consumer.getPower().get(19));
 
         List<Tuple2<ProviderType, List<Provider>>> providersByType = new ArrayList<>();
         providerTypes.forEach(providerType -> {
@@ -53,13 +56,13 @@ public class FireflyImplementation {
 
         BigDecimal heterogeneityFitnessValue = providersByType.stream()
                 .map(providers -> {
-                    if (providers.isEmpty() || numberOfProvidersActivated == 0) {
-                        return new BigDecimal(providers.getFirst().getPercentage());
+                    if (providers.getSecond().isEmpty() || numberOfProvidersActivated == 0) {
+                        return new BigDecimal(providers.getFirst().getPercentage()).divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_FLOOR);
                     }
-                    return (new BigDecimal((providers.size() * 100.0 / numberOfProvidersActivated) - providers.getFirst().getPercentage()).divide(BigDecimal.valueOf(100), BigDecimal.ROUND_FLOOR).abs());
+                    return (new BigDecimal((providers.getSecond().size() * 100.0 / numberOfProvidersActivated) - providers.getFirst().getPercentage()).divide(BigDecimal.valueOf(100), 16, BigDecimal.ROUND_FLOOR).abs());
                 })
                 .reduce(BigDecimal::add)
-                .orElseThrow(() -> new IllegalArgumentException("The heterogenity of the solution can't be computed"));
+                .orElseThrow(() -> new IllegalArgumentException("The heterogeneity of the solution can't be computed"));
 
         BigDecimal priceFitnessValue = sol.stream()
                 .filter(Provider::isFlag)
@@ -67,21 +70,27 @@ public class FireflyImplementation {
                 .map(BigDecimal::new)
                 .reduce(BigDecimal::add).orElse(BigDecimal.ZERO)
                 .subtract(new BigDecimal(consumer.getPrice()))
-                .abs();
+                .max(BigDecimal.ZERO);
+
+        //LOG.info("Energy: {}, Hetero: {}, Price: {}", energyFitnessValue, heterogeneityFitnessValue, priceFitnessValue);
 
         priceFitnessValue = priceFitnessValue.multiply(penaltyWeightPrice);
-        heterogeneityFitnessValue = heterogeneityFitnessValue.multiply(penaltyWeightHeterogenity);
+        heterogeneityFitnessValue = heterogeneityFitnessValue.multiply(penaltyWeightHeterogeneity);
 
-        return energyFitnessValue.add(priceFitnessValue).add(heterogeneityFitnessValue);
+        if(energyFitnessValue.compareTo(BigDecimal.ZERO) > 0) {
+            return energyFitnessValue.add(priceFitnessValue).add(heterogeneityFitnessValue);
+        }
+        return energyFitnessValue.subtract(priceFitnessValue).subtract(heterogeneityFitnessValue);
     }
 
     private BigDecimal fitnessByEnergy(List<Provider> sol) {
         Optional<BigDecimal> sum = sol.stream()
                 .filter(Provider::isFlag)
                 .map(Provider::getEnergy)
-                .map(list -> list.get(0))
+                .map(list -> list.get(19))
                 .reduce(BigDecimal::add);
-        return sum.orElse(BigDecimal.ZERO).subtract(consumer.getPower().get(19)).abs();
+        //return sum.orElse(BigDecimal.ZERO).subtract(consumer.getPower().get(19)).abs();
+        return sum.orElse(BigDecimal.ZERO).subtract(consumer.getPower().get(19));
     }
 
     private List<Provider> generateRandomSolution(List<Provider> providers) {
@@ -123,7 +132,7 @@ public class FireflyImplementation {
     public List<Provider> doAlgorithm(int idx, int numberOfFireflies, int numberOfIterations, List<ProviderType> providerTypes) {
         LOG.info("<<<< Started the algorithm.");
         List<Provider> bestSolutionByFitness = fireflyAlgorithm(numberOfFireflies, numberOfIterations, idx, providerTypes);
-        LOG.info("Number of providers activated: {}", bestSolutionByFitness.stream().filter(Provider::isFlag).count());
+        LOG.info("Number of providers activated: {} / {}", bestSolutionByFitness.stream().filter(Provider::isFlag).count(), bestSolutionByFitness.size());
         LOG.info("Final fitness value: {}", fitnessByEnergy(bestSolutionByFitness));
         providerTypes.forEach(providerType -> {
                     long numberOfProvidersOfType = bestSolutionByFitness.stream()
@@ -132,6 +141,7 @@ public class FireflyImplementation {
                             .count();
                     LOG.info("Number of providers of type : {} activated: {}", providerType.getType(), numberOfProvidersOfType);
                     LOG.info("Percentage desired, minimum of {}, actual: {}", providerType.getPercentage(), (numberOfProvidersOfType * 100.0) / bestSolutionByFitness.stream().filter(Provider::isFlag).count());
+                    LOG.info("Price desired: {}, Actual Price: {}", consumer.getPrice(), bestSolutionByFitness.stream().filter(Provider::isFlag).map(Provider::getPrice).reduce(Double::sum).get());
                 }
         );
         return bestSolutionByFitness;
@@ -220,6 +230,7 @@ public class FireflyImplementation {
         copy.setEnergy(provider.getEnergy());
         copy.setId(provider.getId());
         copy.setType(provider.getType());
+        copy.setPrice(provider.getPrice());
         return copy;
     }
 
@@ -229,6 +240,7 @@ public class FireflyImplementation {
         copy.setEnergy(provider.getEnergy());
         copy.setId(provider.getId());
         copy.setType(provider.getType());
+        copy.setPrice(provider.getPrice());
         return copy;
     }
 
@@ -244,5 +256,11 @@ public class FireflyImplementation {
             }
         }
         return fSol.get(choice);
+    }
+
+    private List<BigDecimal> deepCloneList(List<BigDecimal> toBeCloned) {
+        List<BigDecimal> temp = new ArrayList<>();
+        toBeCloned.forEach(bigDecimal -> temp.add(new BigDecimal(bigDecimal.doubleValue())));
+        return temp;
     }
 }
