@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ro.utcluj.lic.domain.Consumer;
 import ro.utcluj.lic.service.ConsumerService;
+import ro.utcluj.lic.service.dto.ConsumerDTO;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,8 +39,8 @@ public class ConsumerResource {
     }
 
     @GetMapping
-    public ResponseEntity<List<Consumer>> getAllConsumers() {
-        return ok().body(consumerService.getAllConsumers());
+    public ResponseEntity<List<ConsumerDTO>> getAllConsumers() {
+        return ok().body(consumerService.getAllConsumerDTOs());
     }
 
     @GetMapping("/{id}")

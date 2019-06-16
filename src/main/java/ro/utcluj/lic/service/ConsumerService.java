@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import ro.utcluj.lic.domain.Consumer;
 import ro.utcluj.lic.repository.ConsumerRepository;
+import ro.utcluj.lic.service.dto.ConsumerDTO;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ConsumerService {
@@ -77,6 +79,10 @@ public class ConsumerService {
 
     public List<Consumer> getAllConsumers() {
         return consumerRepository.findAll();
+    }
+
+    public List<ConsumerDTO> getAllConsumerDTOs() {
+        return consumerRepository.findAll().stream().map(ConsumerDTO::new).collect(Collectors.toList());
     }
 
 }
