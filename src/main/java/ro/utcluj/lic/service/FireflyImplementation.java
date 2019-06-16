@@ -8,9 +8,12 @@ import org.springframework.stereotype.Service;
 import ro.utcluj.lic.domain.Consumer;
 import ro.utcluj.lic.domain.Provider;
 import ro.utcluj.lic.domain.ProviderType;
+import ro.utcluj.lic.service.dto.WeightTestDTO;
 
+import javax.servlet.Servlet;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -77,13 +80,13 @@ public class FireflyImplementation {
         priceFitnessValue = priceFitnessValue.multiply(penaltyWeightPrice);
         heterogeneityFitnessValue = heterogeneityFitnessValue.multiply(penaltyWeightHeterogeneity);
 
-        if(energyFitnessValue.compareTo(BigDecimal.ZERO) > 0) {
+        if (energyFitnessValue.compareTo(BigDecimal.ZERO) > 0) {
             return energyFitnessValue.add(priceFitnessValue).add(heterogeneityFitnessValue);
         }
         return energyFitnessValue.subtract(priceFitnessValue).subtract(heterogeneityFitnessValue);
     }
 
-    private BigDecimal fitnessByEnergy(List<Provider> sol) {
+    private BigDecimal fitness(List<Provider> sol) {
         Optional<BigDecimal> sum = sol.stream()
                 .filter(Provider::isFlag)
                 .map(Provider::getEnergy)
@@ -108,7 +111,7 @@ public class FireflyImplementation {
             r++;
         }
 
-        //LOG.info("(After Crossover) Fitness I: {}, Fitness J: {}", fitnessByEnergy(fsolI), fitnessByEnergy(fsolJ));
+        //LOG.info("(After Crossover) Fitness I: {}, Fitness J: {}", fitness(fsolI), fitness(fsolJ));
         for (int i = 0; i < r; i++) {
             int idx = ThreadLocalRandom.current().nextInt(0, fsolI.size());
             Provider providerI = fsolI.get(idx);
@@ -121,8 +124,8 @@ public class FireflyImplementation {
             fsolJ.set(idx, providerJ);
         }
 
-        BigDecimal fitnessI = fitness(fsolI, providerTypes).abs();
-        BigDecimal fitnessJ = fitness(fsolJ, providerTypes).abs();
+        BigDecimal fitnessI = fitness(fsolI).abs();
+        BigDecimal fitnessJ = fitness(fsolJ).abs();
 
         //LOG.info("(After Crossover) Fitness I: {}, Fitness J: {}", fitnessI, fitnessJ);
 
@@ -133,7 +136,7 @@ public class FireflyImplementation {
         LOG.info("<<<< Started the algorithm.");
         List<Provider> bestSolutionByFitness = fireflyAlgorithm(numberOfFireflies, numberOfIterations, idx, providerTypes);
         LOG.info("Number of providers activated: {} / {}", bestSolutionByFitness.stream().filter(Provider::isFlag).count(), bestSolutionByFitness.size());
-        LOG.info("Final fitness value: {}", fitnessByEnergy(bestSolutionByFitness));
+        LOG.info("Final fitness value: {}", fitness(bestSolutionByFitness));
         providerTypes.forEach(providerType -> {
                     long numberOfProvidersOfType = bestSolutionByFitness.stream()
                             .filter(simpleProvider -> StringUtils.equals(simpleProvider.getType(), providerType.getType()))
@@ -149,16 +152,41 @@ public class FireflyImplementation {
 
     //method for testing the algorithm
 
-    public BigDecimal findFitnessValue(int numberOfFireflies, int numberOfIterations, String type, Double percentage) {
-        //LOG.info("<<<< Started the algorithm.");
-        List<Provider> bestSolutionByFitness = fireflyAlgorithm(numberOfFireflies, numberOfIterations, 10, new ArrayList<ProviderType>());
-        //LOG.info("Number of providers activated: {}", bestSolutionByFitness.stream().filter(SimpleProvider::isFlag).count());
-        //LOG.info("Final fitnessByEnergy value: {}", fitnessByEnergy(bestSolutionByFitness));
+    public WeightTestDTO findFitnessValue(double penaltyHeterogeneity, double penaltyPrice, String type, Double percentage) {
+        LOG.info("<<<< Started the algorithm.");
 
-        return fitness(bestSolutionByFitness, new ArrayList<>());
+        List<Provider> bestSolutionByFitness = fireflyAlgorithm(penaltyHeterogeneity, penaltyPrice, 10, Collections.singletonList(new ProviderType(type, percentage.intValue())));
+
+        long countProvidersActive = bestSolutionByFitness.stream().filter(Provider::isFlag).count();
+        LOG.info("Number of providers activated: {}", countProvidersActive);
+        LOG.info("Final fitness value: {}", fitness(bestSolutionByFitness));
+        long numberOfProvidersOfType = bestSolutionByFitness.stream()
+                .filter(simpleProvider -> StringUtils.equals(simpleProvider.getType(), "WIND"))
+                .filter(Provider::isFlag)
+                .count();
+        double actualPercentage = countProvidersActive != 0 ? (numberOfProvidersOfType * 100.0) / countProvidersActive : 0.0;
+
+        Double actualPrice = countProvidersActive == 0 ? 0.0 : bestSolutionByFitness.stream().filter(Provider::isFlag).map(Provider::getPrice).reduce(Double::sum).get();
+
+        LOG.info("Number of providers of type : {} activated: {}", "WIND", numberOfProvidersOfType);
+        LOG.info("Percentage desired, minimum of {}, actual: {}", 20, actualPercentage);
+        LOG.info("Price desired: {}, Actual Price: {}", consumer.getPrice(), actualPrice);
+
+        WeightTestDTO weightTestDTO = new WeightTestDTO();
+        weightTestDTO.setFitness(fitness(bestSolutionByFitness));
+        weightTestDTO.setActualPercentage(actualPercentage);
+        weightTestDTO.setActualPrice(actualPrice);
+
+        return weightTestDTO;
     }
 
-    private List<Provider> fireflyAlgorithm(int numberOfFireflies, int numberOfIterations, int idx, List<ProviderType> providerTypes) {
+    private List<Provider> fireflyAlgorithm(double penaltyHeterogeneity, double penaltyPrice, int idx, List<ProviderType> providerTypes) {
+
+        //penaltyWeightHeterogeneity = new BigDecimal(penaltyHeterogeneity);
+        //penaltyWeightPrice = new BigDecimal(penaltyPrice);
+
+        int numberOfFireflies = (int) penaltyHeterogeneity;
+        int numberOfIterations = (int) penaltyPrice;
 
         List<Provider> energyProductionSet = providerService.getAllProviders();
 
@@ -181,14 +209,14 @@ public class FireflyImplementation {
         do {
             for (int i = 0; i < numberOfFireflies; i++) {
                 for (int j = i + 1; j < numberOfFireflies; j++) {
-                    BigDecimal fitnessI = fitness(finalSol.get(i), providerTypes);
-                    BigDecimal fitnessJ = fitness(finalSol.get(j), providerTypes);
+                    BigDecimal fitnessI = fitness(finalSol.get(i));
+                    BigDecimal fitnessJ = fitness(finalSol.get(j));
 
                     if (fitnessI.compareTo(fitnessJ) > 0) {
                         long r = fitnessI.subtract(fitnessJ).longValue();
                         //LOG.info("R: {}, iteration: {}", fitnessI.subtract(fitnessJ), iteration);
                         finalSol.set(i, crossoverByNumberOfPoints(finalSol.get(i), finalSol.get(j), (int) r, providerTypes));
-                        mutation(finalSol.get(i), fitnessI);
+                        mutation(finalSol.get(i), fitness(finalSol.get(i)), r);
                     }
                 }
             }
@@ -197,31 +225,36 @@ public class FireflyImplementation {
             List<Provider> bestSolutionOfIteration = bestSolutionByFitnessList.stream().map(this::simpleProviderClone).collect(Collectors.toList());
 
             solBest.add(bestSolutionOfIteration);
-            fitnessValue = fitness(bestSolutionByFitnessList, providerTypes);
-            mutation(bestSolutionByFitnessList, fitnessValue);
+            fitnessValue = fitness(bestSolutionByFitnessList);
+            mutation(bestSolutionByFitnessList, fitnessValue, fitnessValue.doubleValue());
             iteration++;
 
         } while (iteration < numberOfIterations); // (fitnessValue.compareTo(BigDecimal.valueOf(threshold)) < 0 && fitnessValue.compareTo(BigDecimal.valueOf(0 - threshold)) > 0) <- optim local
         return getBestSolutionByFitness(solBest, providerTypes);
     }
 
-    private void mutation(List<Provider> providers, BigDecimal fitnessValue) {
+    private void mutation(List<Provider> providers, BigDecimal fitnessValue, double r) {
         int index;
+        if (r == 0) {
+            r += 0.1;
+        }
 
+        //for (int i = 0; i < r; i++) {
         if (providers.stream().noneMatch(Provider::isFlag)) {
             index = ThreadLocalRandom.current().nextInt(0, providers.size());
         } else {
             if (fitnessValue.compareTo(BigDecimal.ZERO) < 0) {
                 do {
                     index = ThreadLocalRandom.current().nextInt(0, providers.size());
-                } while (providers.get(index).isFlag());
+                } while (providers.get(index).isFlag() && providers.get(index).getEnergy().get(19).abs().compareTo(BigDecimal.valueOf(r).abs()) < 0);
             } else {
                 do {
                     index = ThreadLocalRandom.current().nextInt(0, providers.size());
-                } while (!providers.get(index).isFlag());
+                } while (!providers.get(index).isFlag() && providers.get(index).getEnergy().get(19).abs().compareTo(BigDecimal.valueOf(r).abs()) > 0);
             }
         }
         providers.get(index).setFlag(!providers.get(index).isFlag());
+        // }
     }
 
     private Provider initializeSimpleProviderViaClone(Provider provider) {
@@ -246,21 +279,15 @@ public class FireflyImplementation {
 
     private List<Provider> getBestSolutionByFitness(List<List<Provider>> fSol, List<ProviderType> providerTypes) {
         int choice = 0;
-        BigDecimal minimal = fitness(fSol.get(0), providerTypes).abs();
+        BigDecimal minimal = fitness(fSol.get(0)).abs();
 
         for (List<Provider> list : fSol) {
-            BigDecimal fitnessValue = fitness(list, providerTypes).abs();
+            BigDecimal fitnessValue = fitness(list).abs();
             if ((fitnessValue.compareTo(minimal)) < 0) {
-                minimal = fitness(list, providerTypes);
+                minimal = fitness(list);
                 choice = fSol.indexOf(list);
             }
         }
         return fSol.get(choice);
-    }
-
-    private List<BigDecimal> deepCloneList(List<BigDecimal> toBeCloned) {
-        List<BigDecimal> temp = new ArrayList<>();
-        toBeCloned.forEach(bigDecimal -> temp.add(new BigDecimal(bigDecimal.doubleValue())));
-        return temp;
     }
 }

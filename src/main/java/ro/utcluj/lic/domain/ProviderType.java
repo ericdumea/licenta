@@ -14,6 +14,7 @@ public class ProviderType {
         this.percentage = percentage;
     }
 
+
     public String getType() {
         return type;
     }

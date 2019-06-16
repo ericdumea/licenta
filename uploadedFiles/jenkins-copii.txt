@@ -1,0 +1,136 @@
+properties([
+    [
+        $class  : 'jenkins.model.BuildDiscarderProperty',
+        strategy: [
+            $class      : 'LogRotator',
+            numToKeepStr: '10'
+        ]
+    ]
+])
+
+node {
+
+    def workSpace = pwd()
+    def server = Artifactory.server 'artifactory_cbr'
+    def uploadSpec = """{
+        "files": [
+            {
+                "pattern": "",
+                "target": ""
+            }
+        ]
+    }
+    """
+    def buildInfo
+    def artifactNameStOne
+    def artifactNameCecil
+    def brand
+
+    stage('Checkout') {
+        cleanWs()
+        checkout scm
+    }
+
+    stage('Building Dev-Managed B2B-Platform StreetOne') {
+        try {
+            brand = "streetone"
+            sh "${workSpace}/gradlew -PnodeInstall -Penv=prod -Pbrand=${brand} clean build bootRepackage -x test --stacktrace"
+            def version = sh(returnStdout: true, script: "ls -al ${workSpace}/build/libs/*.war | awk '{print \$9}' | grep -oP '([0-9\\.]{2,})(?<!\\.)'").trim()
+            artifactNameStOne = "b2b-${brand}-${version}-${BUILD_NUMBER}.war"
+            sh "mv ${workSpace}/build/libs/*.war ${workSpace}/build/libs/${artifactNameStOne}"
+            archiveArtifacts artifacts: '**/build/libs/*.*', fingerprint: true
+            // Upload to Artifactory.
+            buildInfo = server.upload spec: uploadSpec
+            slackSend color: "good", message: "Uploading build spec to artifactory ${artifactNameStOne}"
+            // Publish the build to Artifactory
+            server.publishBuildInfo buildInfo
+        } catch (err) {
+            if (currentBuild.result == 'UNSTABLE')
+                currentBuild.result = 'FAILURE'
+            slackSend color: "bad", message: "Unable to upload ${brand} build spec to artifactory"
+            throw err
+        }
+    }
+
+    stage('Building Dev-Managed B2B-Platform Cecil') {
+        try {
+            brand = "cecil"
+            sh "${workSpace}/gradlew -PnodeInstall -Penv=prod -Pbrand=${brand} clean build bootRepackage -x test --stacktrace"
+            def version = sh(returnStdout: true, script: "ls -al ${workSpace}/build/libs/*.war | awk '{print \$9}' | grep -oP '([0-9\\.]{2,})(?<!\\.)'").trim()
+            artifactNameCecil = "b2b-${brand}-${version}-${BUILD_NUMBER}.war"
+            sh "mv ${workSpace}/build/libs/*.war ${workSpace}/build/libs/${artifactNameCecil}"
+            archiveArtifacts artifacts: '**/build/libs/*.*', fingerprint: true
+            // Upload to Artifactory.
+            buildInfo = server.upload spec: uploadSpec
+            slackSend color: "good", message: "Uploading build spec to artifactory ${artifactNameCecil}"
+            // Publish the build to Artifactory
+            server.publishBuildInfo buildInfo
+        } catch (err) {
+            if (currentBuild.result == 'UNSTABLE')
+                currentBuild.result = 'FAILURE'
+            slackSend color: "bad", message: "Unable to upload ${brand} build spec to artifactory"
+            throw err
+        }
+    }
+
+    stage('Stop Dev-Managed B2B-Platform StreetOne') {
+        slackSend color: "good", message: "Stopping B2B-Platform StreetOne on Dev-Managed"
+
+        try {
+            withCredentials([string(credentialsId: 'deployment_credentials', variable: 'deployment_credentials')]) {
+                sh "winexe // -U cbr\\\\b2bbuild_svc%${deployment_credentials.replace('\\', '\\\\')} 'net stop B2B-StreetOne'"
+            }
+        }
+        catch (err) {
+            slackSend color: "bad", message: "Service was already stopped skipping to next step"
+        }
+    }
+
+    stage('Deploy Dev-Managed B2B-Platform StreetOne') {
+        brand = "streetone"
+        slackSend color: "good", message: "Deploying B2B-Platform StreetOne on Dev-Managed"
+        withCredentials([string(credentialsId: 'deployment_credentials', variable: 'deployment_credentials')]) {
+            sh "winexe // -U cbr\\\\b2bbuild_svc%${deployment_credentials.replace('\\', '\\\\')} 'powershell.exe -file \"D:\\B2B\\deployment.ps1\" -buildVersion ${artifactNameStOne} -brand ${brand}'"
+        }
+    }
+
+    stage('Start Dev-Managed B2B-Platform StreetOne') {
+        slackSend color: "good", message: "Starting B2B-Platform StreetOne on Dev-Managed"
+        withCredentials([string(credentialsId: 'deployment_credentials', variable: 'deployment_credentials')]) {
+            sh "winexe // -U cbr\\\\b2bbuild_svc%${deployment_credentials.replace('\\', '\\\\')} 'net start B2B-StreetOne'"
+        }
+    }
+
+    stage('Stop Dev-Managed B2B-Platform Cecil') {
+        slackSend color: "good", message: "Stopping B2B-Platform Cecil on Dev-Managed"
+
+        try {
+            withCredentials([string(credentialsId: 'deployment_credentials', variable: 'deployment_credentials')]) {
+                sh "winexe // -U cbr\\\\b2bbuild_svc%${deployment_credentials.replace('\\', '\\\\')} 'net stop B2B-Cecil'"
+            }
+        }
+        catch (err) {
+            slackSend color: "bad", message: "Service was already stopped skipping to next step"
+        }
+    }
+
+    stage('Deploy Dev-Managed B2B-Platform Cecil') {
+        brand = "cecil"
+        slackSend color: "good", message: "Deploying B2B-Platform Cecil on Dev-Managed"
+        withCredentials([string(credentialsId: 'deployment_credentials', variable: 'deployment_credentials')]) {
+            sh "winexe // -U cbr\\\\b2bbuild_svc%${deployment_credentials.replace('\\', '\\\\')} 'powershell.exe -file \"D:\\B2B\\deployment.ps1\" -buildVersion ${artifactNameCecil} -brand ${brand}'"
+        }
+    }
+
+    stage('Start Dev-Managed B2B-Platform Cecil') {
+        slackSend color: "good", message: "Starting B2B-Platform Cecil on Dev-Managed"
+        withCredentials([string(credentialsId: 'deployment_credentials', variable: 'deployment_credentials')]) {
+            sh "winexe // -U cbr\\\\b2bbuild_svc%${deployment_credentials.replace('\\', '\\\\')} 'net start B2B-Cecil'"
+        }
+    }
+
+    stage('Promote to TST') {
+        milestone()
+        input "Promote to TST?"
+        milestone()
+    }

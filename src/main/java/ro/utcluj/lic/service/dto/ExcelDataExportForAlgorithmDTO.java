@@ -1,9 +1,8 @@
 package ro.utcluj.lic.service.dto;
 
-import java.util.List;
 import java.util.Objects;
 
-public class ExcelDataExportDTO {
+public class ExcelDataExportForAlgorithmDTO {
 
     private int numberOfIterations;
 
@@ -11,7 +10,7 @@ public class ExcelDataExportDTO {
 
     private Double timingAverage;
 
-    public ExcelDataExportDTO() {
+    public ExcelDataExportForAlgorithmDTO() {
     }
 
     public int getNumberOfIterations() {
@@ -42,7 +41,7 @@ public class ExcelDataExportDTO {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ExcelDataExportDTO that = (ExcelDataExportDTO) o;
+        ExcelDataExportForAlgorithmDTO that = (ExcelDataExportForAlgorithmDTO) o;
         return numberOfIterations == that.numberOfIterations &&
                 Objects.equals(fitnessAverage, that.fitnessAverage) &&
                 Objects.equals(timingAverage, that.timingAverage);
