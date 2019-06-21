@@ -14,7 +14,9 @@ import javax.servlet.Servlet;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -288,6 +290,15 @@ public class FireflyImplementation {
                 choice = fSol.indexOf(list);
             }
         }
+
+        Map<String, Long> map = providerTypes.stream()
+                .collect(Collectors.groupingBy(ProviderType::getType, Collectors.counting()));
+
         return fSol.get(choice);
     }
+
+
+
+
+
 }
