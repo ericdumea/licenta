@@ -8,6 +8,8 @@ import java.util.List;
 
 public class ConsumerDTO {
 
+    private String name;
+
     private String id;
 
     private List<BigDecimal> power;
@@ -18,6 +20,7 @@ public class ConsumerDTO {
     }
 
     public ConsumerDTO(Consumer consumer) {
+        this.name = consumer.getName();
         this.power = consumer.getPower();
         this.price = consumer.getPrice();
         this.id = consumer.getId().toHexString();
@@ -47,4 +50,11 @@ public class ConsumerDTO {
         this.price = price;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

@@ -1,5 +1,6 @@
 package ro.utcluj.lic.api;
 
+import org.bson.types.ObjectId;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +14,8 @@ import ro.utcluj.lic.domain.ProviderType;
 import ro.utcluj.lic.service.FireflyImplementation;
 import ro.utcluj.lic.service.ProviderService;
 import ro.utcluj.lic.service.TestAlgorithmParametersService;
+import ro.utcluj.lic.service.dto.AlgoRequestDTO;
+import ro.utcluj.lic.service.dto.ResultsDTO;
 
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +51,11 @@ public class ProviderResource {
 //        }
         List<ProviderType> providerTypes = Collections.singletonList(new ProviderType(type, percentage));
         return Collections.singletonList(fireflyImplementation.doAlgorithm(19, Constants.NO_F, Constants.NO_ITERATIONS, providerTypes));
+    }
+
+    @PostMapping("/run-algorithm")
+    public String runAlgorithm(@RequestBody AlgoRequestDTO algoRequestDTO) {
+        return fireflyImplementation.runAlgorithm(algoRequestDTO);
     }
 
     //FIXME to be converted to POST

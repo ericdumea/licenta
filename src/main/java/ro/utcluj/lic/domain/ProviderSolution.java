@@ -2,6 +2,7 @@ package ro.utcluj.lic.domain;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
+import ro.utcluj.lic.service.dto.ProviderInfoResultsDTO;
 
 import java.util.List;
 
@@ -16,7 +17,17 @@ public class ProviderSolution {
 
     private Consumer consumer;
 
+    private List<ProviderInfoResultsDTO> providerInfoList;
+
     public ProviderSolution() {
+    }
+
+    public List<ProviderInfoResultsDTO> getProviderInfoList() {
+        return providerInfoList;
+    }
+
+    public void setProviderInfoList(List<ProviderInfoResultsDTO> providerInfoList) {
+        this.providerInfoList = providerInfoList;
     }
 
     public List<Provider> getProviders() {
