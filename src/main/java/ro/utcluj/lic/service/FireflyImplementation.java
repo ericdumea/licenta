@@ -32,8 +32,11 @@ public class FireflyImplementation {
 
     //FIXME these two need more tweaking
 
-    private BigDecimal penaltyWeightHeterogeneity = new BigDecimal(2.5);
+    private BigDecimal penaltyWeightHeterogeneity = new BigDecimal(5.5);
     private BigDecimal penaltyWeightPrice = new BigDecimal(2.5);
+
+    private int startHour = 0;
+    private int endHour = 23;
 
     public FireflyImplementation(ConsumerService consumerService, ProviderService providerService, ProviderSolutionService providerSolutionService) {
         this.consumerService = consumerService;
@@ -42,9 +45,6 @@ public class FireflyImplementation {
     }
 
     private BigDecimal fitness(List<Provider> sol, List<ProviderType> providerTypes) {
-
-        int startHour = 0;
-        int endHour = 23;
 
 //        Optional<BigDecimal> sum = sol.stream()
 //                .filter(Provider::isFlag)
@@ -60,10 +60,23 @@ public class FireflyImplementation {
 
         BigDecimal sum24h = BigDecimal.ZERO;
         for (int i = startHour; i <= endHour; i++) {
-            sum24h = sum24h.add(fitnessByHour(sol, i).abs());
+
+            BigDecimal fitnessValue = fitnessByHour(sol, i);
+
+            if (fitnessValue.compareTo(BigDecimal.ZERO) < 0) {
+                //high penalty
+                fitnessValue = fitnessValue.subtract(BigDecimal.valueOf(3.25));
+                sum24h = sum24h.add(fitnessValue);
+            } else {
+                //low penalty
+                fitnessValue = fitnessValue.add(BigDecimal.valueOf(0.25));
+                sum24h = sum24h.add(fitnessValue);
+            }
+
+//            sum24h = sum24h.add(fitnessValue.abs());
         }
 
-        BigDecimal energyFitnessValue = sum24h.divide(BigDecimal.valueOf(endHour-startHour+1), 16, BigDecimal.ROUND_FLOOR);
+        BigDecimal energyFitnessValue = sum24h.divide(BigDecimal.valueOf(endHour - startHour + 1), 16, BigDecimal.ROUND_FLOOR);
 
         List<Tuple2<ProviderType, List<Provider>>> providersByType = new ArrayList<>();
         providerTypes.forEach(providerType -> {
@@ -99,8 +112,10 @@ public class FireflyImplementation {
         //LOG.info("Energy: {}, Hetero: {}, Price: {}", energyFitnessValue, heterogeneityFitnessValue, priceFitnessValue);
 
         if (energyFitnessValue.compareTo(BigDecimal.ZERO) > 0) {
+            //LOG.info("got here");
             return energyFitnessValue.add(priceFitnessValue).add(heterogeneityFitnessValue);
         }
+        //LOG.info("got here too {} ", energyFitnessValue);
         return energyFitnessValue.subtract(priceFitnessValue).subtract(heterogeneityFitnessValue);
     }
 
@@ -316,7 +331,12 @@ public class FireflyImplementation {
     }
 
     public String runAlgorithm(AlgoRequestDTO algoRequestDTO) {
-        LOG.info("<<<< Started the algorithm.");                                                                                            //idx to be changed to 24h
+        LOG.info("<<<< Started the algorithm.");//idx to be changed to 24h
+        if(algoRequestDTO.getStartHour() != 0 || algoRequestDTO.getEndHour() != 23){
+            startHour = algoRequestDTO.getStartHour();
+            endHour = algoRequestDTO.getEndHour();
+        }
+
         List<Provider> bestSolutionByFitness = fireflyAlgorithm(algoRequestDTO.getNumberOfFireflies(), algoRequestDTO.getNumberOfIterations(), 1, algoRequestDTO.getProviderTypes());
         List<Provider> activeProvidersInSolution = bestSolutionByFitness.stream().filter(Provider::isFlag).collect(Collectors.toList());
 
@@ -330,8 +350,8 @@ public class FireflyImplementation {
         List<ProviderInfoResultsDTO> providerInfoResultsDTOS = new ArrayList<>();
         LOG.info("Final energy fitness value: {}", fitness(bestSolutionByFitness));
         algoRequestDTO.getProviderTypes().forEach(providerType -> {
-            ProviderInfoResultsDTO providerInfoResultsDTO = new ProviderInfoResultsDTO();
-            providerInfoResultsDTO.setProviderType(providerType.getType());
+                    ProviderInfoResultsDTO providerInfoResultsDTO = new ProviderInfoResultsDTO();
+                    providerInfoResultsDTO.setProviderType(providerType.getType());
 
                     int numberOfProvidersOfType = (int) bestSolutionByFitness.stream()
                             .filter(simpleProvider -> StringUtils.equals(simpleProvider.getType(), providerType.getType()))
@@ -339,13 +359,20 @@ public class FireflyImplementation {
                             .count();
                     providerInfoResultsDTO.setDesiredPercentage(providerType.getPercentage());
                     providerInfoResultsDTO.setActualPercentage((numberOfProvidersOfType * 100) / activeProvidersInSolution.size());
-
+                    providerInfoResultsDTO.setNrOfProvidersActivated(activeProvidersInSolution.size());
                     providerInfoResultsDTO.setPrice(activeProvidersInSolution.stream().map(Provider::getPrice).reduce(Double::sum).get());
                     providerInfoResultsDTOS.add(providerInfoResultsDTO);
 
                 }
         );
         providerSolution.setProviderInfoList(providerInfoResultsDTOS);
+
+        providerSolution.getProviderInfoList().forEach(providerInfoResultsDTO -> {
+            LOG.info("{}%, {}", providerInfoResultsDTO.getActualPercentage(),providerInfoResultsDTO.getPrice());
+        });
+
+//        LOG.info("consumer: {}, provider: {}", consumer.getPower().stream().reduce(BigDecimal::add).get(),
+//                providerSolution.getProviders().stream().map(Provider::getEnergy));
         return providerSolutionService.insertSolution(providerSolution).getId().toHexString();
     }
 }

@@ -61,4 +61,15 @@ public class ProviderSolution {
     public void setId(ObjectId id) {
         this.id = id;
     }
+
+    @Override
+    public String toString() {
+        return "ProviderSolution{" +
+                "id=" + id +
+                ", providers=" + providers +
+                ", fitnessValue=" + fitnessValue +
+                ", consumer=" + consumer +
+                ", providerInfoList=" + providerInfoList +
+                '}';
+    }
 }
