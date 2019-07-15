@@ -65,7 +65,7 @@ public class FireflyImplementation {
 
             if (fitnessValue.compareTo(BigDecimal.ZERO) < 0) {
                 //high penalty
-                fitnessValue = fitnessValue.subtract(BigDecimal.valueOf(3.25));
+                fitnessValue = fitnessValue.subtract(BigDecimal.valueOf(10.25));
                 sum24h = sum24h.add(fitnessValue);
             } else {
                 //low penalty
